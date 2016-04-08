@@ -35,6 +35,9 @@ def clargs():
 	pkey = sub_parser.add_parser('pkey', help='Prints out public key')
 
 	ls = sub_parser.add_parser('ls', help='List of files in repository')
+	ls.add_argument('-a', '--address', required=True, help='Address of web server to request the key from')
+	ls.add_argument('-u', '--username', required=True, help='Username')
+	ls.add_argument('-p', '--password', required=True, help='Password')
 
 	pull = sub_parser.add_parser('pull', help='pull a file from the server')
 	pull.add_argument('-f', '--fileName', required=True, help='file name to decrypt')

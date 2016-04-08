@@ -17,7 +17,7 @@ KEY_LENGTH = 1024
 
 #provides form and links to uploaded files
 class Userform(tornado.web.RequestHandler):
-    def get(self):the
+    def get(self):
         files = listdir(__UPLOADS__)
         self.render("uploadform.html", files=files)
 
@@ -59,12 +59,30 @@ class pubkey(tornado.web.RequestHandler):
         pubkey = asym_key.publickey()
         self.write(pubkey.exportKey())
 
+#returns list of files in uploads folder
+class ls(tornado.web.RequestHandler):
+    def get(self):
+        #list of files
+        files = listdir(__UPLOADS__)
+        self.write(files)
+
+#returns a selected file from the uploads folder
+class pull(tornado.web.RequestHandler):
+    def get(self):
+        headers = self.request.headers
+        filename = headers['filename']
+        if filename in listdir(__UPLOADS__):
+            fh = open(__UPLOADS__ + filename, 'rb')
+            f = fh.read()
+            self.write(f)
+
 application = tornado.web.Application([
         (r"/", Userform),
         (r"/upload", Upload),
         (r"/files/(.*)",tornado.web.StaticFileHandler, {"path": r"./uploads"},),
         (r"/key", KeyRequests),
         (r"/pubkey", pubkey),
+        (r"/ls", ls),
         ], debug=True)
 
 #generate or load a symmetric key

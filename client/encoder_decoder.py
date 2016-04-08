@@ -9,11 +9,11 @@ from cryptography.fernet import Fernet
 #key size in bits
 KEY_LENGTH = 1024
 
-def sharedFlags(subparser):
+def fileFlag(subparser):
 	required = subparser.add_argument_group('required arguments')
 	required.add_argument('-c', '--config', required=True, help='yaml file describing the application')
 	required.add_argument('-m', '--manager', required=True, help='sepcify the host and port of the docker manager eg 127.0.0.1:3000')
-	subparser.add_argument('-q', '--quiet', required=False, help='Supress messages from the script')
+	required.add_argument('-q', '--quiet', required=False, help='Supress messages from the script')
 
 #allows us to specify the command line arguments that the script must recieve in order to execute
 def clargs():
@@ -23,13 +23,21 @@ def clargs():
 	sub_parser.required = True
 	#sub commands for the program
 	init = sub_parser.add_parser('init', help='initialise in this directory. Creates and saves private and public keys')
+
 	decrypt = sub_parser.add_parser('decrypt', help='decrypts a file with a symetric key')
 	decrypt.add_argument('-f', '--fileName', required=True, help='file name to decrypt')
+
 	getKey = sub_parser.add_parser('getKey', help='Requests a key from a web server')
 	getKey.add_argument('-a', '--address', required=True, help='Address of web server to request the key from')
 	getKey.add_argument('-u', '--username', required=True, help='Username')
 	getKey.add_argument('-p', '--password', required=True, help='Password')
+
 	pkey = sub_parser.add_parser('pkey', help='Prints out public key')
+
+	ls = sub_parser.add_parser('ls', help='List of files in repository')
+
+	pull = sub_parser.add_parser('pull', help='pull a file from the server')
+	pull.add_argument('-f', '--fileName', required=True, help='file name to decrypt')
 
 	return main_parser.parse_args()
 
@@ -70,14 +78,8 @@ class crypto():
 		#generate public key
 		public_key = self.keypair.publickey()
 		client = tornado.httpclient.HTTPClient()
-		#get servers public key
-		try:
-			server_pubkey = RSA.importKey(client.fetch(address+'/pubkey').body)
-		except httpclient.HTTPError as e:
-			print("Error: " + str(e))
-		#encrypt password and username
-		e_p = server_pubkey.encrypt(password.encode('utf-8'), 32)[0]
-		e_u = server_pubkey.encrypt(username.encode('utf-8'), 32)[0]
+		#encrypt details, username and password
+		e_u, e_p = self.__encrypt_details()
 		#send public key to handler to request symmetric key for bucket
 		body_dict = {'pkey':pickle.dumps(public_key), 'password':e_p, 'username':e_u}
 		body = pickle.dumps(body_dict)
@@ -100,6 +102,47 @@ class crypto():
 		public_key = self.keypair.publickey()
 		print(public_key.exportKey())
 
+	#sends request for list of filenames in repo
+	def ls(self):
+		#generate public key
+		public_key = self.keypair.publickey()
+		#send public key to handler with encrypted password and username to request file
+		client = tornado.httpclient.HTTPClient()
+		#generate body containing public key, username and password
+		body = self.__details_key_body(public_key)
+		#send request to the ls handler
+		request = tornado.httpclient.HTTPRequest(method='POST', url=address+'/ls', body=body)
+		try:
+			p = client.fetch(request)
+		except httpclient.HTTPError as e:
+			print("Error: "+ str(e))
+		client.close()
+		#decrypt list using private key
+		print(p.body)
+
+	#pull a file from the repo, decrypt it and save in the directory
+	#def pull(self, filename):
+
+
+	def __encrypt_details(self):
+		client = tornado.httpclient.HTTPClient()
+		#get servers public key
+		try:
+			server_pubkey = RSA.importKey(client.fetch(address+'/pubkey').body)
+		except httpclient.HTTPError as e:
+			print("Error: " + str(e))
+		#encrypt password and username
+		e_p = server_pubkey.encrypt(password.encode('utf-8'), 32)[0]
+		e_u = server_pubkey.encrypt(username.encode('utf-8'), 32)[0]
+		return e_u, e_p
+
+	def __details_key_body(self, pkey):
+		e_u, e_p = self.__encrypt_details()
+		body_dict = {'pkey':pickle.dumps(public_key), 'password':e_p, 'username':e_u}
+		body = pickle.dumps(body_dict)
+		return body
+
+
 if __name__ == '__main__':
 	args = clargs()
 	if(args.cmd == 'init'):
@@ -110,3 +153,7 @@ if __name__ == '__main__':
 		crypto().getKey(args.address, args.username, args.password,)
 	elif(args.cmd == 'pkey'):
 		crypto().getPKey()
+	elif(args.cmd == 'ls'):
+		crypto().ls()
+	elif(args.cmd == 'pull'):
+		crypto().pull(args.fileName)

@@ -42,6 +42,11 @@ def clargs():
 	pull = sub_parser.add_parser('pull', help='pull a file from the server')
 	pull.add_argument('-f', '--fileName', required=True, help='file name to decrypt')
 
+	remote = sub_parser.add_parser('remote', help='set the web address, username and password the client will use')
+	remote.add_argument('-a', '--address', required=True, help='Web address of server')
+	remote.add_argument('-u', '--username', required=True, help='Username')
+	remote.add_argument('-p', '--password', required=True, help='Password')
+
 	return main_parser.parse_args()
 
 

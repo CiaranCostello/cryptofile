@@ -61,12 +61,25 @@ class crypto():
 			fh = open('keypair', 'rb')
 			self.keypair = RSA.importKey(fh.read())
 
+		#get remote details
+		fh = open('remote', 'rb')
+		remote = pickle.loads(fh.read())
+		self.address = remote['address']
+		self.username = remote['username']
+		self.password = remote['password']
+
+
 	def init(self):
 		#print public key
 		print('Public Key: '+str(self.keypair.publickey()))
 		#save keypair as file
 		fh = open('keypair', 'wb')
 		fh.write(self.keypair.exportKey())
+
+	def remote(self, address, username, password):
+		remote = {'address':address, 'username':username, 'password':password}
+		fh = open('remote', 'wb')
+		fh.write(picke.dumps(remote))
 
 	def decrypt(self, filename):
 		#get symmetric key

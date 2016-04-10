@@ -95,7 +95,7 @@ class crypto():
 		fh = open(filename, 'wb')
 		fh.write(decrypted_file)
 
-	def getKey(self, address, username, password):
+	def getKey(self):
 		#generate public key
 		public_key = self.keypair.publickey()
 		client = tornado.httpclient.HTTPClient()
@@ -104,7 +104,7 @@ class crypto():
 		#send public key to handler to request symmetric key for bucket
 		body_dict = {'pkey':pickle.dumps(public_key), 'password':e_p, 'username':e_u}
 		body = pickle.dumps(body_dict)
-		request = tornado.httpclient.HTTPRequest(method='POST', url=address+'/key', body=body)
+		request = tornado.httpclient.HTTPRequest(method='POST', url=self.address+'/key', body=body)
 		try:
 			p = client.fetch(request)
 		except httpclient.HTTPError as e:
@@ -132,7 +132,7 @@ class crypto():
 		#generate body containing public key, username and password
 		body = self.__details_key_body(public_key)
 		#send request to the ls handler
-		request = tornado.httpclient.HTTPRequest(method='POST', url=address+'/ls', body=body)
+		request = tornado.httpclient.HTTPRequest(method='POST', url=self.address+'/ls', body=body)
 		try:
 			p = client.fetch(request)
 		except httpclient.HTTPError as e:
@@ -153,8 +153,8 @@ class crypto():
 		except httpclient.HTTPError as e:
 			print("Error: " + str(e))
 		#encrypt password and username
-		e_p = server_pubkey.encrypt(password.encode('utf-8'), 32)[0]
-		e_u = server_pubkey.encrypt(username.encode('utf-8'), 32)[0]
+		e_p = server_pubkey.encrypt(self.password.encode('utf-8'), 32)[0]
+		e_u = server_pubkey.encrypt(self.username.encode('utf-8'), 32)[0]
 		return e_u, e_p
 
 	def __details_key_body(self, pkey):

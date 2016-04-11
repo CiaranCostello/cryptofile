@@ -1,6 +1,7 @@
 import pickle, argparse, Crypto, tornado
 from tornado import httpclient
 import requests
+from os import listdir
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Hash import MD5
@@ -28,9 +29,6 @@ def clargs():
 	decrypt.add_argument('-f', '--fileName', required=True, help='file name to decrypt')
 
 	getKey = sub_parser.add_parser('getKey', help='Requests a key from a web server')
-	getKey.add_argument('-a', '--address', required=True, help='Address of web server to request the key from')
-	getKey.add_argument('-u', '--username', required=True, help='Username')
-	getKey.add_argument('-p', '--password', required=True, help='Password')
 
 	pkey = sub_parser.add_parser('pkey', help='Prints out public key')
 
@@ -47,11 +45,13 @@ def clargs():
 	remote.add_argument('-u', '--username', required=True, help='Username')
 	remote.add_argument('-p', '--password', required=True, help='Password')
 
+	premote = sub_parser.add_parser('premote', help='Prints out the saved remote details')
+
 	return main_parser.parse_args()
 
 
 class crypto():
-	def __init__(self, generateKey=False):
+	def __init__(self, generateKey=False, remote_called=False):
 		#get public and private key
 		if generateKey:
 			random_gen = Random.new().read
@@ -62,11 +62,16 @@ class crypto():
 			self.keypair = RSA.importKey(fh.read())
 
 		#get remote details
-		fh = open('remote', 'rb')
-		remote = pickle.loads(fh.read())
-		self.address = remote['address']
-		self.username = remote['username']
-		self.password = remote['password']
+		if 'remote' in listdir('./') and not remote_called:
+			fh = open('remote', 'rb')
+			remote = pickle.loads(fh.read())
+			self.address = remote['address']
+			self.username = remote['username']
+			self.password = remote['password']
+			print('Reading remote details')
+			self.getRemote()
+		elif not remote_called:
+			print('Remote file not present')
 
 
 	def init(self):
@@ -79,7 +84,7 @@ class crypto():
 	def remote(self, address, username, password):
 		remote = {'address':address, 'username':username, 'password':password}
 		fh = open('remote', 'wb')
-		fh.write(picke.dumps(remote))
+		fh.write(pickle.dumps(remote))
 
 	def decrypt(self, filename):
 		#get symmetric key
@@ -113,6 +118,7 @@ class crypto():
 		encrypted_key = pickle.loads(p.body)
 		#decrypt response using private key
 		key = self.keypair.decrypt(encrypted_key)
+		print(str(key))
 
 		#save key as file
 		fh = open('sym_key', 'wb')
@@ -122,6 +128,12 @@ class crypto():
 	def getPKey(self):
 		public_key = self.keypair.publickey()
 		print(public_key.exportKey())
+
+	#prints out the remote details
+	def getRemote(self):
+		print('Address: '+ self.address)
+		print('Username: '+ self.username)
+		print('Password: '+ self.password)
 
 	#sends request for list of filenames in repo
 	def ls(self):
@@ -149,7 +161,7 @@ class crypto():
 		client = tornado.httpclient.HTTPClient()
 		#get servers public key
 		try:
-			server_pubkey = RSA.importKey(client.fetch(address+'/pubkey').body)
+			server_pubkey = RSA.importKey(client.fetch(self.address+'/pubkey').body)
 		except httpclient.HTTPError as e:
 			print("Error: " + str(e))
 		#encrypt password and username
@@ -171,10 +183,14 @@ if __name__ == '__main__':
 	elif(args.cmd == 'decrypt'):
 		crypto().decrypt(args.fileName)
 	elif(args.cmd == 'getKey'):
-		crypto().getKey(args.address, args.username, args.password,)
+		crypto().getKey()
 	elif(args.cmd == 'pkey'):
 		crypto().getPKey()
 	elif(args.cmd == 'ls'):
 		crypto().ls()
 	elif(args.cmd == 'pull'):
 		crypto().pull(args.fileName)
+	elif(args.cmd == 'remote'):
+		crypto(remote_called=True).remote(address=args.address, username=args.username, password=args.password)
+	elif(args.cmd == 'premote'):
+		crypto().getRemote()

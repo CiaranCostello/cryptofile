@@ -46,7 +46,7 @@ class KeyRequests(tornado.web.RequestHandler):
         client_password = asym_key.decrypt(body_dict['password']).decode('utf-8')
         #if the username and password are in the users return key for bucket
         if users[client_username] is client_password:
-            print('encrypting key')
+            print('encrypting key: '+str(key))
             encrypted_key = pubkey.encrypt(key, 32)[0]
             p = pickle.dumps(encrypted_key)
             self.write(p)

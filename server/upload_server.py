@@ -17,7 +17,7 @@ KEY_LENGTH = 1024
 
 #provides form and links to uploaded files
 class Userform(tornado.web.RequestHandler):
-    def get(self):the
+    def get(self):
         files = listdir(__UPLOADS__)
         self.render("uploadform.html", files=files)
 
@@ -25,12 +25,12 @@ class Userform(tornado.web.RequestHandler):
 class Upload(tornado.web.RequestHandler):
     def post(self):
         fileinfo = self.request.files['filearg'][0]
-        print("fileinfo is" + str(fileinfo))
         fname = fileinfo['filename']
         fh = open(__UPLOADS__ + fname, 'wb')
         #encrypt file
         cipher_suite = Fernet(key)
         encryptedFile = cipher_suite.encrypt(fileinfo['body'])
+        print(cipher_suite.decrypt(encryptedFile))
         #store at address specified by __UPLOADS
         fh.write(encryptedFile)
         self.finish(fname + " is uploaded!! Check %s folder" %__UPLOADS__)

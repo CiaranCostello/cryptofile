@@ -36,7 +36,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/inn1t-f00s/Documents/third_year/cryptofile/env"
+set -gx VIRTUAL_ENV "/home/inn1t-f00s/Documents/third_year/cryptofile/client/env"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

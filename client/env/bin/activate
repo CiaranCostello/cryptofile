@@ -40,7 +40,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/home/inn1t-f00s/Documents/third_year/cryptofile/env"
+VIRTUAL_ENV="/home/inn1t-f00s/Documents/third_year/cryptofile/client/env"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
